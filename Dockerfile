@@ -354,6 +354,16 @@ COPY --link --chmod=a+rX,go-w . .
 # The shared assembler binds the prepared environment and frontend products.
 RUN /opt/hermes/.venv/bin/python -m docker.build_agent
 
+# ---------- lluminet: yt-dlp + Python Playwright for google_meet plugin ----------
+# plugins/google_meet/{cli,meet_bot}.py launch chromium HEADED (headless=False),
+# which the headless-shell build cannot do, so the Python Playwright needs the
+# FULL chromium build matching its own version (do not rely on the JS-side build).
+# MUST be baked in here: HERMES_DISABLE_LAZY_INSTALLS=1 (set below) disables
+# runtime installs, and /opt/hermes is read-only for the hermes user via the
+# COPY --chmod=a+rX,go-w above.
+RUN uv pip install --no-cache-dir playwright==1.58.0 yt-dlp && \
+    /opt/hermes/.venv/bin/playwright install chromium
+
 # Wire the exec shim and install-method stamp.  Files under /opt/hermes are
 # already root-owned (COPY, dep assembly, npm install all run as root) and
 # read-only for the hermes user (go-w from the --chmod above).
