@@ -27,6 +27,18 @@ services:
     volumes:
     - /opt/ai/hermes-data:/opt/data
     - /opt/ai/hermes-workspace:/workspace
+    # liqscout package (procurement scout). Read-only: state lives in /workspace/liqscout-data.
+    - /opt/ai/dev/liqscout:/workspace/liqscout:ro
+    # /tmp/hermes_voice is created lazily by whichever process touches TTS
+    # first. The container runs as root (s6 drops the gateway to uid 1000), so
+    # a root-first create leaves it root:root 0755 and EVERY auto-TTS voice
+    # reply then dies with EACCES for that container's whole lifetime -
+    # silently, since the only trace is a WARNING in agent.log. Observed
+    # 2026-08-18..26: 133 consecutive failures, cleared only by a recreate
+    # that happened to let the gateway win the race. A mode=1777 tmpfs makes
+    # the directory deterministic on every start and removes the race.
+    tmpfs:
+    - /tmp/hermes_voice:mode=1777
     runtime: nvidia
     environment:
     - HERMES_UID=1000
@@ -43,6 +55,11 @@ services:
     - HERMES_VISION_WORKERS=2
     - HERMES_STREAM_READ_TIMEOUT=180
     - HERMES_API_TIMEOUT=300
+    # 90s default TTFB watchdog was tuned to gpt-oss-120b (24-52s/call).
+    # kimi-k3 runs 45-228s and tripped it mid-run; the nvidia-nim
+    # stale_timeout_seconds never applies because the primary resolves
+    # as provider=custom. This env var is the only knob that reaches it.
+    - HERMES_API_CALL_STALE_TIMEOUT=900
     command:
     - gateway
     ports:
