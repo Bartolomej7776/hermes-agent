@@ -3,6 +3,11 @@ services:
     image: hermes-agent:lluminet-v2026.9.14
     container_name: hermes-agent
     restart: unless-stopped
+    # Docker's default 10s SIGTERM grace is shorter than the gateway's drain
+    # (agent.restart_drain_timeout=60), so every docker stop/restart ended in
+    # SIGKILL -> "exited UNCLEANLY" -> FTS5 index corruption in state.db
+    # (seen 2026-09-28: malformed inverted index, sessions unsearchable).
+    stop_grace_period: 90s
     # 192.168.80.1 MUST be first. It is the only resolver holding the
     # split-horizon *.data-thread.com records (kokoro/metube/etc -> 10.77.10.2);
     # 192.168.0.1 and Tailscale MagicDNS both answer NXDOMAIN for them. NXDOMAIN
@@ -60,7 +65,21 @@ services:
     # stale_timeout_seconds never applies because the primary resolves
     # as provider=custom. This env var is the only knob that reaches it.
     - HERMES_API_CALL_STALE_TIMEOUT=900
+    # The container has no IPv6 and a working resolver, so the Telegram IP-literal
+    # fallback walk only added noise: every transient connect failure logged 3-4
+    # warnings and forced a transport rebuild, ~1000 lines/day by 2026-09-21, and
+    # five times escalated to a full adapter rebuild. Hostname-only path is the
+    # one that always worked.
+    - HERMES_TELEGRAM_DISABLE_FALLBACK_IPS=1
+    # Root cause of those connect failures (found 2026-10-04; NOT the r8152 NIC):
+    # the image's OpenSSL 3.5 offers the X25519MLKEM768 post-quantum hybrid, and
+    # its oversized ClientHello is reset mid-handshake on ~3-5% of connects to
+    # api.telegram.org. Host OpenSSL 3.0 is unaffected. Classic groups only: 0/400.
+    - OPENSSL_CONF=/opt/data/openssl-classic.cnf
     command:
     - gateway
     ports:
     - 192.168.80.6:8642:8642
+    # Same port on loopback so agents on aipc itself can use http://localhost:8642
+    # (the wg0 address is not hairpin-reachable from the host).
+    - 127.0.0.1:8642:8642
