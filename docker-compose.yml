@@ -32,6 +32,7 @@ services:
     volumes:
     - /opt/ai/hermes-data:/opt/data
     - /opt/ai/hermes-workspace:/workspace
+    - /opt/ai/cinematics:/opt/cinematics
     # liqscout package (procurement scout). Read-only: state lives in /workspace/liqscout-data.
     - /opt/ai/dev/liqscout:/workspace/liqscout:ro
     # /tmp/hermes_voice is created lazily by whichever process touches TTS
@@ -83,3 +84,51 @@ services:
     # Same port on loopback so agents on aipc itself can use http://localhost:8642
     # (the wg0 address is not hairpin-reachable from the host).
     - 127.0.0.1:8642:8642
+
+  # Backend for the Hermes desktop app on the Mac ("Remote gateway" mode).
+  # Tailscale IP only. A non-loopback bind always engages the dashboard auth
+  # gate (--insecure is a no-op since June 2026), so login is the bundled
+  # basic provider; its username/hash/secret live in dashboard.env (gitignored).
+  hermes-dashboard:
+    image: hermes-agent:lluminet-v2026.9.14
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    depends_on:
+    - hermes
+    # Shares the gateway's PID namespace so the dashboard's gateway liveness check
+    # (PID from gateway_state.json vs the process table) sees the gateway running in
+    # the other container; without it the desktop app shows "messaging stopped".
+    # Not PID 1 here, so the entrypoint skips s6 and runs the dashboard directly.
+    pid: service:hermes
+    dns:
+    - 192.168.80.1
+    - 192.168.0.1
+    - 100.100.100.100
+    - 1.1.1.1
+    user: root
+    extra_hosts:
+    - host.docker.internal:host-gateway
+    volumes:
+    - /opt/ai/hermes-data:/opt/data
+    - /opt/ai/hermes-workspace:/workspace
+    tmpfs:
+    - /tmp/hermes_voice:mode=1777
+    env_file:
+    - dashboard.env
+    environment:
+    - HERMES_UID=1000
+    - HERMES_GID=1000
+    - HERMES_WRITE_SAFE_ROOT=/opt/data:/workspace:/tmp/hermes_voice
+    - HERMES_STREAM_READ_TIMEOUT=180
+    - HERMES_API_TIMEOUT=300
+    - HERMES_API_CALL_STALE_TIMEOUT=900
+    - OPENSSL_CONF=/opt/data/openssl-classic.cnf
+    command:
+    - dashboard
+    - --host
+    - 0.0.0.0
+    - --port
+    - "9119"
+    - --no-open
+    ports:
+    - 100.77.76.104:9119:9119
