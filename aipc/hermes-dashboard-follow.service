@@ -1,0 +1,14 @@
+[Unit]
+Description=Restart hermes-dashboard whenever hermes-agent starts
+After=docker.service
+Requires=docker.service
+RequiresMountsFor=/opt/ai/dev
+
+[Service]
+ExecStart=/opt/ai/dev/hermes-agent/aipc/hermes-dashboard-follow.sh
+Restart=always
+RestartSec=5
+User=mark
+
+[Install]
+WantedBy=multi-user.target
