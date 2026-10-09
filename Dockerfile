@@ -361,7 +361,7 @@ RUN /opt/hermes/.venv/bin/python -m docker.build_agent
 # MUST be baked in here: HERMES_DISABLE_LAZY_INSTALLS=1 (set below) disables
 # runtime installs, and /opt/hermes is read-only for the hermes user via the
 # COPY --chmod=a+rX,go-w above.
-RUN uv pip install --no-cache-dir playwright==1.58.0 yt-dlp && \
+RUN uv pip install --no-cache-dir playwright==1.62.0 yt-dlp && \
     /opt/hermes/.venv/bin/playwright install chromium
 
 # Wire the exec shim and install-method stamp.  Files under /opt/hermes are

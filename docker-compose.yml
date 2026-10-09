@@ -1,6 +1,6 @@
 services:
   hermes:
-    image: hermes-agent:lluminet-v2026.9.14
+    image: hermes-agent:lluminet-v0.21.6
     container_name: hermes-agent
     restart: unless-stopped
     # Docker's default 10s SIGTERM grace is shorter than the gateway's drain
@@ -90,7 +90,7 @@ services:
   # gate (--insecure is a no-op since June 2026), so login is the bundled
   # basic provider; its username/hash/secret live in dashboard.env (gitignored).
   hermes-dashboard:
-    image: hermes-agent:lluminet-v2026.9.14
+    image: hermes-agent:lluminet-v0.21.6
     container_name: hermes-dashboard
     restart: unless-stopped
     depends_on:
