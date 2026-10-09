@@ -362,8 +362,8 @@ RUN /opt/hermes/.venv/bin/python -m docker.build_agent
 # runtime installs, and /opt/hermes is read-only for the hermes user via the
 # COPY --chmod=a+rX,go-w above.
 # v0.21.6: uv is internal pm tooling (not on PATH, not an installed_package);
-# run it through pm's own Runner, which carries the right PATH/env.
-RUN cd /opt/hermes && python3 -c 'from pm import ensure; ensure("uv").run(["uv", "pip", "install", "--no-cache-dir", "--python", "/opt/hermes/.venv/bin/python", "playwright==1.62.0", "yt-dlp"], check=True)' && \
+# resolve it with pm.install.uv_launcher.
+RUN cd /opt/hermes && uv="$(python3 -c 'from pm.install import uv_launcher; print(uv_launcher("uv"))')" && "$uv" pip install --no-cache-dir --python /opt/hermes/.venv/bin/python playwright==1.62.0 yt-dlp && \
     /opt/hermes/.venv/bin/playwright install chromium
 
 # Wire the exec shim and install-method stamp.  Files under /opt/hermes are
