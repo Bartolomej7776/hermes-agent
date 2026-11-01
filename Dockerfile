@@ -406,6 +406,17 @@ COPY --link --chmod=a+rX,go-w . .
 # The shared assembler binds the prepared environment and frontend products.
 RUN /opt/hermes/.venv/bin/python -m docker.build_agent
 
+# ---------- lluminet: yt-dlp + Python Playwright for google_meet plugin ----------
+# Since v0.21.6 google_meet launches pm's full chromium via
+# executable_path=chromium_executable(), so only the Python packages are needed.
+# Do NOT run `playwright install`: PLAYWRIGHT_BROWSERS_PATH is pm's tool store
+# (/opt/hermes/tools) and its stale-browser GC deletes pm's chromium-<rev> and
+# ffmpeg-<ver> there, leaving ffmpeg and the agent-browser executable dangling.
+# uv is internal pm tooling (not on PATH); resolve it with pm.install.uv_launcher.
+RUN cd /opt/hermes && uv="$(python3 -c 'from pm.install import uv_launcher; print(uv_launcher("uv"))')" && \
+    "$uv" pip install --no-cache-dir --python /opt/hermes/.venv/bin/python playwright==1.62.0 yt-dlp && \
+    ffmpeg -version >/dev/null && test -x "$(cat /etc/hermes/agent-browser-executable-path)"
+
 # Wire the exec shim and install-method stamp.  Files under /opt/hermes are
 # already root-owned (COPY, dep assembly, npm install all run as root) and
 # read-only for the hermes user (go-w from the --chmod above).
