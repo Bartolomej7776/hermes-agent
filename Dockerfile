@@ -415,7 +415,8 @@ RUN /opt/hermes/.venv/bin/python -m docker.build_agent
 # uv is internal pm tooling (not on PATH); resolve it with pm.install.uv_launcher.
 RUN cd /opt/hermes && uv="$(python3 -c 'from pm.install import uv_launcher; print(uv_launcher("uv"))')" && \
     "$uv" pip install --no-cache-dir --python /opt/hermes/.venv/bin/python playwright==1.62.0 yt-dlp && \
-    ffmpeg -version >/dev/null && test -x "$(cat /etc/hermes/agent-browser-executable-path)"
+    ffmpeg -version >/dev/null && \
+    test -x "$(/opt/hermes/.venv/bin/python -c 'from hermes_cli.browser_runtime import chromium_executable; print(chromium_executable() or "")')"
 
 # Wire the exec shim and install-method stamp.  Files under /opt/hermes are
 # already root-owned (COPY, dep assembly, npm install all run as root) and
