@@ -84,6 +84,10 @@ services:
     # Same port on loopback so agents on aipc itself can use http://localhost:8642
     # (the wg0 address is not hairpin-reachable from the host).
     - 127.0.0.1:8642:8642
+    # Webhook route 'voice': push-to-talk Hermes from the rig (wg0) and Mac (Tailscale).
+    - 192.168.80.6:8644:8644
+    - 100.77.76.104:8644:8644
+    - 127.0.0.1:8644:8644
 
   # Backend for the Hermes desktop app on the Mac ("Remote gateway" mode).
   # Tailscale IP only. A non-loopback bind always engages the dashboard auth
