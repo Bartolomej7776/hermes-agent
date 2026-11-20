@@ -11,6 +11,10 @@ start_dashboard() {
     docker start hermes-dashboard >/dev/null 2>&1 && { echo "started hermes-dashboard"; return 0; }
     sleep 5
   done
+  # docker start can't fix a dashboard still pinned to a recreated hermes-agent's
+  # old container ID; compose recreates it against the current one.
+  docker compose -f /opt/ai/dev/hermes-agent/docker-compose.yml up -d --no-deps hermes-dashboard >/dev/null 2>&1 &&
+    { echo "recreated hermes-dashboard"; return 0; }
   echo "failed to start hermes-dashboard" >&2
 }
 
